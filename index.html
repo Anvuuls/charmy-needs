@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CharmPass 1:1</title>
+    <title>CharmPass 1:1 Replica</title>
     <style>
-        @font-face {
-            font-family: 'MoovelAkkurat';
-            src: url('fonts/MoovelAkkurat-Regular.otf') format('opentype');
-            font-weight: 400;
-        }
         @font-face {
             font-family: 'MoovelAkkurat';
             src: url('fonts/MoovelAkkurat-Bold.otf') format('opentype');
@@ -17,15 +12,14 @@
         }
         @font-face {
             font-family: 'MoovelAkkurat';
-            src: url('fonts/MoovelAkkurat-Light.otf') format('opentype');
-            font-weight: 300;
+            src: url('fonts/MoovelAkkurat-Regular.otf') format('opentype');
+            font-weight: 400;
         }
 
         :root {
-            --mta-red: #9d2236; /* Exact colorPrimary from JADX */
-            --ticket-bg: #fcfcfc; /* Exact ticket_stack_background_color */
+            --mta-red: #9d2236;
+            --ticket-bg: #fcfcfc;
             --text-dark: #212121;
-            --text-grey: #757575;
             --bg-dark: #000000;
         }
 
@@ -34,7 +28,7 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
-            font-family: "MoovelAkkurat", "Roboto", sans-serif;
+            font-family: "MoovelAkkurat", "Helvetica Neue", Arial, sans-serif;
         }
 
         body, html {
@@ -58,42 +52,36 @@
         .setup-header {
             font-size: 24px;
             font-weight: 700;
+            margin-bottom: 20px;
             color: var(--text-dark);
-            margin-bottom: 24px;
             border-bottom: 2px solid var(--mta-red);
-            padding-bottom: 12px;
+            padding-bottom: 8px;
         }
-        .input-group {
-            margin-bottom: 16px;
-        }
+        .input-group { margin-bottom: 12px; }
         .input-group label {
             display: block;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
-            color: var(--text-grey);
-            margin-bottom: 6px;
+            color: #757575;
             text-transform: uppercase;
+            margin-bottom: 4px;
         }
         .input-group input, .input-group select {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #d0d0d0;
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 16px;
-            font-family: "MoovelAkkurat", sans-serif;
-            background: #f9f9f9;
+            font-size: 15px;
         }
         #launch-btn {
             background: var(--mta-red);
             color: white;
             border: none;
-            padding: 16px;
+            padding: 14px;
             border-radius: 4px;
-            font-size: 18px;
             font-weight: 700;
-            margin-top: 10px;
-            cursor: pointer;
             text-transform: uppercase;
+            margin-top: 10px;
         }
 
         /* --- App Screen --- */
@@ -106,8 +94,7 @@
 
         #bg-video {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -116,18 +103,18 @@
         .overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.05);
             z-index: 2;
         }
 
+        /* EXACT POSITIONING: 30% bias from JADX */
         #ticket-viewport {
             position: absolute;
-            top: 0;
+            top: 30%; /* Vertical bias 0.3 */
             left: 0;
             width: 100%;
-            height: 100%;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
             scrollbar-width: none;
@@ -139,7 +126,7 @@
         .ticket-wrapper {
             scroll-snap-align: center;
             flex-shrink: 0;
-            width: 288px; /* flash_pass_ticket_cell_width */
+            width: 288px;
             margin: 0 16px;
             display: flex;
             flex-direction: column;
@@ -149,82 +136,96 @@
         .ticket {
             width: 100%;
             background-color: var(--ticket-bg);
-            border-radius: 4px; /* ticket_stack_corner_radius */
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            border-radius: 4px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             position: relative;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Expiration Header */
+        /* Header: 60dp */
         .ticket-header {
-            height: 60px; /* flash_pass_ticket_expiration_section_height */
+            height: 60px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0 16px;
         }
         .exp-time, .exp-date {
-            font-size: 20px; /* Title style */
+            font-size: 20px;
             font-weight: 700;
             color: #000;
+            letter-spacing: -0.5px;
         }
 
         .divider {
             height: 1px;
-            background-color: #e0e0e0;
+            background-color: #e8e8e8;
             margin: 0 16px;
         }
 
-        /* Body Section */
         .ticket-body {
             padding: 16px;
             display: flex;
             justify-content: space-between;
-            min-height: 220px;
+            min-height: 230px;
+            position: relative;
         }
 
+        /* Left Side */
         .left-section {
             display: flex;
             flex-direction: column;
             flex: 1;
         }
         .agency-logo {
-            height: 24px;
+            height: 22px;
             width: auto;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             align-self: flex-start;
         }
         .giant-letter {
-            font-size: 120px; /* flash_pass_ticket_start_header_max_text_size approx */
+            font-size: 130px;
             font-weight: 700;
             color: #000;
-            line-height: 0.8;
-            margin-left: -4px;
+            line-height: 0.75;
+            margin-top: 4px;
+            margin-left: -6px;
+            letter-spacing: -4px;
         }
-        .loc-container {
-            margin-top: 8px;
+        
+        /* Station logic */
+        .marc-info {
+            margin-top: 4px;
+            display: flex;
+            flex-direction: column;
         }
-        .location {
-            font-size: 15px;
+        .route-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 22px;
             font-weight: 700;
             color: #000;
             text-transform: uppercase;
         }
-        .to-text {
-            font-size: 12px;
-            color: #666;
-            margin: 2px 0;
+        .arrow-glyph {
+            font-size: 24px;
+            color: #000;
+            margin-top: -2px;
         }
+        
         .product-name {
             font-size: 14px;
             font-weight: 700;
             color: #444;
             margin-top: auto;
             text-transform: uppercase;
+            padding-bottom: 4px;
         }
 
+        /* Right Side */
         .right-section {
             display: flex;
             flex-direction: column;
@@ -233,48 +234,48 @@
             flex-shrink: 0;
         }
         .red-box {
-            width: 60px; /* flash_pass_ticket_day_use_code_width */
-            height: 45px; /* flash_pass_ticket_day_use_code_height */
+            width: 60px;
+            height: 45px;
             background-color: var(--mta-red);
-            border-radius: 22.5px; /* Fully rounded ends */
+            border-radius: 22.5px;
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 30px;
             font-weight: 700;
+            margin-bottom: 12px;
         }
         .qr-code {
             width: 60px;
-            height: 72px; /* flash_pass_ticket_scan_code_height */
-            margin-top: 12px;
+            height: 72px;
             background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADf80W2AAAALVBMVEUAAAD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsM6m2AAAADnRSTlMAAQIDBAUGBwgJCgsMDVv8pToAAAFcSURBVHgB7dHNSsNAFIVhzX13+uI0+M0I4v6vYvA5fA0E0zPzNlVwO2yX+xI4v5zJ5/NZ7MtnfDyeD8fz4XjcH46743533L4H3LwGvF8e4/b4YfVxbGvD55j3x5eF5fFyPD4P/XN4C+/v53gNfF583f7B49fF1+0ffH1dfN3+wd7H4Pfr4/b4YfXh7bZfHtfWxmW/PDrDff+M6+Xp2XF/P74GvF+eRse/4XvF0+Po+Hd6vD047h+fHvePv5NfA94vP96fv4NfH7fHD6sPr6/p0W0PDr8GvF9+vOf+D694exwtLp+Lz+bH09/pX49vH0+/fH5dfP6zXwN+f6yOf8P3H16v6eU/u+3B4deAd/B5O88+w8Pr+ff8fH5dfL5dfP6zXwPe58H8H49fF1+3ffB1+wd7H4N38P7A5/j98Rjff5w8vg/f56+v/wBq20vIu9u6rAAAAABJRU5ErkJggg==');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
         }
 
-        /* Perforation Notches */
+        /* Notches */
         .ticket::before, .ticket::after {
             content: "";
             position: absolute;
             top: 60px;
-            width: 14px;
-            height: 14px;
-            background-color: rgba(0,0,0,0.2); /* Blend with video */
+            width: 16px;
+            height: 16px;
+            background-color: #000;
             border-radius: 50%;
             z-index: 5;
             transform: translateY(-50%);
         }
-        .ticket::before { left: -7px; }
-        .ticket::after { right: -7px; }
+        .ticket::before { left: -8px; }
+        .ticket::after { right: -8px; }
 
         .indicator {
-            margin-top: 16px;
+            margin-top: 12px;
             color: #fff;
             font-size: 14px;
             font-weight: 700;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             padding: 4px 12px;
             border-radius: 12px;
         }
@@ -283,24 +284,40 @@
 <body>
 
     <div id="setup-screen">
-        <div class="setup-header">CharmPass Setup</div>
+        <div class="setup-header">CharmPass 1:1 Config</div>
         <div class="input-group">
-            <label>Service</label>
+            <label>Service Type</label>
             <select id="in-service" onchange="updateForm()">
                 <option value="local">Local Bus / BaltimoreLink</option>
                 <option value="marc">MARC Train</option>
             </select>
         </div>
         <div id="od-group" style="display:none">
-            <div class="input-group"><label>Origin</label><select id="in-origin"></select></div>
-            <div class="input-group"><label>Destination</label><select id="in-dest"></select></div>
+            <div class="input-group"><label>Origin Station</label>
+                <select id="in-origin">
+                    <option value="BAL">Baltimore Penn</option>
+                    <option value="WAS">Washington Union</option>
+                    <option value="BWI">BWI Airport</option>
+                    <option value="ODN">Odenton</option>
+                    <option value="WAS">Washington</option>
+                    <option value="FRE">Frederick</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Destination Station</label>
+                <select id="in-dest">
+                    <option value="WAS">Washington Union</option>
+                    <option value="BAL">Baltimore Penn</option>
+                    <option value="BWI">BWI Airport</option>
+                    <option value="ODN">Odenton</option>
+                </select>
+            </div>
         </div>
-        <div class="input-group"><label>Giant Letter</label><input type="text" id="in-letter" value="F" maxlength="1"></div>
+        <div class="input-group"><label>Giant Letter (Day Code)</label><input type="text" id="in-letter" value="F" maxlength="1"></div>
         <div class="input-group"><label>Red Box Code</label><input type="text" id="in-code" value="G7" maxlength="3"></div>
-        <div class="input-group"><label>Product</label><input type="text" id="in-product" value="BaltimoreLink"></div>
-        <div class="input-group"><label>Tickets</label><input type="number" id="in-count" value="1"></div>
-        <div class="input-group"><label>Exp Minutes</label><input type="number" id="in-minutes" value="90"></div>
-        <button id="launch-btn">ACTIVATE</button>
+        <div class="input-group"><label>Product Name</label><input type="text" id="in-product" value="BaltimoreLink"></div>
+        <div class="input-group"><label>Ticket Count</label><input type="number" id="in-count" value="1"></div>
+        <div class="input-group"><label>Exp (Mins)</label><input type="number" id="in-minutes" value="90"></div>
+        <button id="launch-btn">ACTIVATE TICKET</button>
     </div>
 
     <div id="app-screen">
@@ -310,39 +327,26 @@
     </div>
 
     <script>
-        const marcStations = ["Aberdeen", "Baltimore Penn Station", "BWI Airport", "Bowie State", "Camden Station", "Frederick", "Halethorpe", "Odenton", "Rockville", "Silver Spring", "Washington Union Station", "West Baltimore"];
-        
-        function populate(el, opts) {
-            el.innerHTML = '';
-            opts.forEach(o => { const opt = document.createElement('option'); opt.value = opt.text = o; el.appendChild(opt); });
-        }
-
         function updateForm() {
             const isMarc = document.getElementById('in-service').value === 'marc';
             document.getElementById('od-group').style.display = isMarc ? 'block' : 'none';
-            if (isMarc) {
-                populate(document.getElementById('in-origin'), marcStations);
-                populate(document.getElementById('in-dest'), [...marcStations].reverse());
-                document.getElementById('in-product').value = "MARC Train";
-            } else {
-                document.getElementById('in-product').value = "BaltimoreLink";
-            }
+            if(isMarc) document.getElementById('in-product').value = "MARC Train";
+            else document.getElementById('in-product').value = "BaltimoreLink";
         }
-        updateForm();
 
         document.getElementById('launch-btn').onclick = () => {
-            const count = parseInt(document.getElementById('in-count').value);
-            const minutes = parseInt(document.getElementById('in-minutes').value);
+            const count = parseInt(document.getElementById('in-count').value) || 1;
+            const minutes = parseInt(document.getElementById('in-minutes').value) || 90;
             const service = document.getElementById('in-service').value;
+            const origin = document.getElementById('in-origin').value;
+            const dest = document.getElementById('in-dest').value;
             const letter = document.getElementById('in-letter').value.toUpperCase();
             const code = document.getElementById('in-code').value.toUpperCase();
             const product = document.getElementById('in-product').value;
-            const origin = document.getElementById('in-origin').value;
-            const dest = document.getElementById('in-dest').value;
 
             const exp = new Date(Date.now() + minutes * 60000);
-            const timeStr = exp.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit', second:'2-digit', hour12: true});
-            const dateStr = exp.toLocaleDateString([], {month:'2-digit', day:'2-digit', year:'2-digit'});
+            const timeStr = exp.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', second:'2-digit', hour12: true});
+            const dateStr = exp.toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'2-digit'});
 
             const viewport = document.getElementById('ticket-viewport');
             viewport.innerHTML = '';
@@ -350,6 +354,21 @@
             for(let i=1; i<=count; i++) {
                 const wrap = document.createElement('div');
                 wrap.className = 'ticket-wrapper';
+                
+                let midContent = `<div class="giant-letter">${letter}</div>`;
+                if(service === 'marc') {
+                    midContent = `
+                        <div class="giant-letter">${letter}</div>
+                        <div class="marc-info">
+                            <div class="route-row">
+                                <span>${origin}</span>
+                                <span class="arrow-glyph">➔</span>
+                                <span>${dest}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 wrap.innerHTML = `
                     <div class="ticket">
                         <div class="ticket-header">
@@ -360,13 +379,7 @@
                         <div class="ticket-body">
                             <div class="left-section">
                                 <img src="ticket_icon.png" class="agency-logo">
-                                ${service === 'local' ? `<div class="giant-letter">${letter}</div>` : `
-                                    <div class="loc-container">
-                                        <div class="location">${origin}</div>
-                                        <div class="to-text">to</div>
-                                        <div class="location">${dest}</div>
-                                    </div>
-                                `}
+                                ${midContent}
                                 <div class="product-name">${product}</div>
                             </div>
                             <div class="right-section">
