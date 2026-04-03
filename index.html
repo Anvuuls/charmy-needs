@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CharmPass 1:1 Replica</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -21,6 +21,12 @@
         #launch-btn { background: var(--mta-red); color: white; border: none; padding: 14px; border-radius: 4px; font-weight: 700; text-transform: uppercase; cursor: pointer; width: 100%; }
 
         #app-screen { display: none; position: relative; width: 100%; height: 100%; overflow: hidden; }
+        
+        /* White bars for top and bottom */
+        .status-bar-bg { position: absolute; left: 0; width: 100%; background: #ffffff; z-index: 50; }
+        .sb-top { top: 0; height: env(safe-area-inset-top, 44px); }
+        .sb-bottom { bottom: 0; height: env(safe-area-inset-bottom, 34px); }
+
         #bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
         .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.02); z-index: 2; pointer-events: none; }
 
@@ -177,6 +183,8 @@
     </div>
 
     <div id="app-screen">
+        <div class="status-bar-bg sb-top"></div>
+        <div class="status-bar-bg sb-bottom"></div>
         <video id="bg-video" autoplay loop muted playsinline><source src="background.mp4" type="video/mp4"></video>
         <div class="overlay"></div>
         <div id="ticket-viewport"></div>
