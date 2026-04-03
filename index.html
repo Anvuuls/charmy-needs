@@ -4,399 +4,687 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CharmPass 1:1 Replica</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        @font-face {
-            font-family: 'MoovelAkkurat';
-            src: url('fonts/MoovelAkkurat-Bold.otf') format('opentype');
-            font-weight: 700;
-        }
-        @font-face {
-            font-family: 'MoovelAkkurat';
-            src: url('fonts/MoovelAkkurat-Regular.otf') format('opentype');
-            font-weight: 400;
-        }
+        @font-face { font-family: 'MoovelAkkurat'; src: url('fonts/MoovelAkkurat-Bold.otf') format('opentype'); font-weight: 700; }
+        @font-face { font-family: 'MoovelAkkurat'; src: url('fonts/MoovelAkkurat-Regular.otf') format('opentype'); font-weight: 400; }
 
-        :root {
-            --mta-red: #9d2236;
-            --ticket-bg: #fcfcfc;
-            --text-dark: #212121;
-            --bg-dark: #000000;
-        }
+        :root { --mta-red: #C8122C; --ticket-bg: #FFFFFF; --bg-dark: #000000; --divider-gray: #E0E0E0; --text-secondary: #757575; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-            font-family: "MoovelAkkurat", "Helvetica Neue", Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: "MoovelAkkurat", "Helvetica Neue", Arial, sans-serif; }
+        body, html { height: 100%; width: 100%; overflow: hidden; background-color: var(--bg-dark); user-select: none; }
 
-        body, html {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            background-color: var(--bg-dark);
-        }
-
-        /* --- Setup Screen --- */
-        #setup-screen {
-            position: fixed;
-            inset: 0;
-            background: #ffffff;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            padding: 24px;
-            overflow-y: auto;
-        }
-        .setup-header {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: var(--text-dark);
-            border-bottom: 2px solid var(--mta-red);
-            padding-bottom: 8px;
-        }
+        #setup-screen { position: fixed; inset: 0; background: #ffffff; z-index: 1000; display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
         .input-group { margin-bottom: 12px; }
-        .input-group label {
-            display: block;
-            font-size: 11px;
-            font-weight: 700;
-            color: #757575;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 15px;
-        }
-        #launch-btn {
-            background: var(--mta-red);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 4px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 10px;
-        }
+        .input-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+        #launch-btn { background: var(--mta-red); color: white; border: none; padding: 14px; border-radius: 4px; font-weight: 700; text-transform: uppercase; cursor: pointer; width: 100%; }
 
-        /* --- App Screen --- */
-        #app-screen {
-            display: none;
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
+        #app-screen { display: none; position: relative; width: 100%; height: 100%; overflow: hidden; }
+        #bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.02); z-index: 2; pointer-events: none; }
 
-        #bg-video {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 1;
-        }
-        .overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.05);
-            z-index: 2;
-        }
+        #ticket-viewport { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none; }
+        #ticket-viewport > * { pointer-events: auto; }
 
-        /* EXACT POSITIONING: 30% bias from JADX */
-        #ticket-viewport {
-            position: absolute;
-            top: 30%; /* Vertical bias 0.3 */
-            left: 0;
-            width: 100%;
-            display: flex;
-            align-items: flex-start;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scrollbar-width: none;
-            z-index: 10;
-            padding: 0 calc(50vw - 144px);
-        }
-        #ticket-viewport::-webkit-scrollbar { display: none; }
+        .ticket { width: 424px; height: 480px; top: -13px; background-color: var(--ticket-bg); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; overflow: visible; }
 
-        .ticket-wrapper {
-            scroll-snap-align: center;
-            flex-shrink: 0;
-            width: 288px;
-            margin: 0 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        /* All ticket elements are absolute by default */
+        .ticket div, .ticket span { position: absolute; }
 
-        .ticket {
-            width: 100%;
-            background-color: var(--ticket-bg);
-            border-radius: 4px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .expire-time { left: 23px; top: 29px; font-size: 26px; letter-spacing: 0.6px; color: #000; }
+        .expire-date { left: 281px; top: 30px; font-size: 26px; letter-spacing: 0px; color: #000; }
 
-        /* Header: 60dp */
-        .ticket-header {
-            height: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 16px;
-        }
-        .exp-time, .exp-date {
-            font-size: 20px;
-            font-weight: 700;
-            color: #000;
-            letter-spacing: -0.5px;
-        }
+        .notches-unit { left: 0px; top: 72px; width: 382px; height: 34px; display: flex; align-items: center; cursor: ns-resize; z-index: 40; }
+        .divider { height: 1px; background-color: var(--divider-gray); width: 100%; margin: 0 20px; position: static !important; flex-shrink: 0; }
 
-        .divider {
-            height: 1px;
-            background-color: #e8e8e8;
-            margin: 0 16px;
-        }
+        .product-name { left: 24px; top: 387px; font-size: 18px; font-weight: 700; color: #000; }
+        .giant-letter { left: 22px; top: 142px; font-size: 125px; font-weight: 700; color: #000; line-height: 0.65; letter-spacing: -10px; }
 
-        .ticket-body {
-            padding: 16px;
-            display: flex;
-            justify-content: space-between;
-            min-height: 230px;
-            position: relative;
-        }
+        .route-origin { left: 24px; top: 335px; font-size: 35px; font-weight: 700; color: #000; letter-spacing: 0px; width: 63px; height: 42px; }
+        .route-arrow { left: 102px; top: 330px; font-size: 37px; font-weight: 700; color: #000; }
+        .route-dest { left: 142px; top: 335px; font-size: 35px; font-weight: 700; color: #000; opacity: 1; }
+        .zones-text { left: 25px; top: 279px; font-size: 27px; font-weight: 700; color: #000; letter-spacing: 0px; }
 
-        /* Left Side */
-        .left-section {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-        .agency-logo {
-            height: 22px;
-            width: auto;
-            margin-bottom: 8px;
-            align-self: flex-start;
-        }
-        .giant-letter {
-            font-size: 130px;
-            font-weight: 700;
-            color: #000;
-            line-height: 0.75;
-            margin-top: 4px;
-            margin-left: -6px;
-            letter-spacing: -4px;
-        }
-        
-        /* Station logic */
-        .marc-info {
-            margin-top: 4px;
-            display: flex;
-            flex-direction: column;
-        }
-        .route-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 22px;
-            font-weight: 700;
-            color: #000;
-            text-transform: uppercase;
-        }
-        .arrow-glyph {
-            font-size: 24px;
-            color: #000;
-            margin-top: -2px;
-        }
-        
-        .product-name {
-            font-size: 14px;
-            font-weight: 700;
-            color: #444;
-            margin-top: auto;
-            text-transform: uppercase;
-            padding-bottom: 4px;
-        }
+        .red-box { left: 311px; top: 107px; width: 88px; height: 70px; background-color: var(--mta-red); border-radius: 10px; color: #fff; display: flex; justify-content: center; align-items: center; font-size: 44px; font-weight: 700; }
+        .box-code { left: 327px; top: 118px; font-size: 44px; font-weight: 700; color: #fff; letter-spacing: 0px; z-index: 45; }
+        .qr-container { left: 313px; top: 196px; width: 86px; height: 86px; background: white; padding: 5px; border-radius: 6px; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; }
+        .qr-container img { width: 100% !important; height: 100% !important; position: static !important; }
 
-        /* Right Side */
-        .right-section {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            width: 60px;
-            flex-shrink: 0;
-        }
-        .red-box {
-            width: 60px;
-            height: 45px;
-            background-color: var(--mta-red);
-            border-radius: 22.5px;
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-        .qr-code {
-            width: 60px;
-            height: 72px;
-            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADf80W2AAAALVBMVEUAAAD///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsM6m2AAAADnRSTlMAAQIDBAUGBwgJCgsMDVv8pToAAAFcSURBVHgB7dHNSsNAFIVhzX13+uI0+M0I4v6vYvA5fA0E0zPzNlVwO2yX+xI4v5zJ5/NZ7MtnfDyeD8fz4XjcH46743533L4H3LwGvF8e4/b4YfVxbGvD55j3x5eF5fFyPD4P/XN4C+/v53gNfF583f7B49fF1+0ffH1dfN3+wd7H4Pfr4/b4YfXh7bZfHtfWxmW/PDrDff+M6+Xp2XF/P74GvF+eRse/4XvF0+Po+Hd6vD047h+fHvePv5NfA94vP96fv4NfH7fHD6sPr6/p0W0PDr8GvF9+vOf+D694exwtLp+Lz+bH09/pX49vH0+/fH5dfP6zXwN+f6yOf8P3H16v6eU/u+3B4deAd/B5O88+w8Pr+ff8fH5dfL5dfP6zXwPe58H8H49fF1+3ffB1+wd7H4N38P7A5/j98Rjff5w8vg/f56+v/wBq20vIu9u6rAAAAABJRU5ErkJggg==');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
+        /* ── Customization Mode UI ── */
+        .editable:not(.ticket):hover { outline: 1px dashed rgba(0,0,255,0.5); cursor: move; }
+        .ticket.editable:hover { cursor: grab; box-shadow: 0 20px 50px rgba(0,0,255,0.25), 0 20px 50px rgba(0,0,0,0.7); }
+        .selected { outline: 2px dashed #00f !important; z-index: 1000 !important; }
 
-        /* Notches */
-        .ticket::before, .ticket::after {
-            content: "";
-            position: absolute;
-            top: 60px;
-            width: 16px;
-            height: 16px;
-            background-color: #000;
-            border-radius: 50%;
-            z-index: 5;
-            transform: translateY(-50%);
-        }
-        .ticket::before { left: -8px; }
-        .ticket::after { right: -8px; }
+        .resize-handle { position: absolute !important; width: 12px; height: 12px; background: #00f; border: 2px solid white; z-index: 6000; touch-action: none; }
+        .h-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+        .h-ne { top: -6px; right: -6px; cursor: nesw-resize; }
+        .h-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+        .h-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+        .h-n  { top: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .h-s  { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .h-e  { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+        .h-w  { left: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-        .indicator {
-            margin-top: 12px;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 700;
-            background: rgba(0,0,0,0.6);
-            padding: 4px 12px;
-            border-radius: 12px;
-        }
+        .ref-container { position: absolute; z-index: 100; pointer-events: auto; cursor: move; outline: 2px dashed #0f0; }
+        .ref-container.locked { border: none; outline: none; pointer-events: none !important; }
+
+        #grid-overlay { position: fixed; inset: 0; z-index: 5; pointer-events: none; display: none;
+            background-image: linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px; }
+
+        #edit-panel { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; color: black; z-index: 5000; padding: 10px 14px; border-top: 2px solid #C8122C; max-height: 45vh; overflow-y: auto; font-size: 12px; }
+        #ep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #ep-header button { padding: 4px 10px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; background: #f5f5f5; font-size: 12px; }
+        #ep-header button:last-child { background: #C8122C; color: white; border-color: #C8122C; font-weight: bold; }
+        #controls { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+        .ctrl-row { display: flex; align-items: center; gap: 5px; }
+        .ctrl-row label { font-size: 11px; color: #666; min-width: 62px; }
+        .ctrl-row input[type=number] { width: 58px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+        .ctrl-row input[type=text]   { width: 130px; padding: 2px 4px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; }
+        .ctrl-row input[type=range]  { width: 90px; }
+        .ctrl-row input[type=color]  { width: 36px; height: 24px; padding: 1px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; }
+        .ctrl-row button { padding: 3px 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 3px; background: #f5f5f5; font-size: 11px; }
+
+        #qr-overlay { display: none; position: fixed; inset: 0; background: white; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        #qr-full { width: 100%; max-width: 400px; aspect-ratio: 1; }
     </style>
 </head>
 <body>
+    <div id="grid-overlay"></div>
 
     <div id="setup-screen">
-        <div class="setup-header">CharmPass 1:1 Config</div>
-        <div class="input-group">
-            <label>Service Type</label>
-            <select id="in-service" onchange="updateForm()">
-                <option value="local">Local Bus / BaltimoreLink</option>
-                <option value="marc">MARC Train</option>
-            </select>
-        </div>
+        <div class="input-group"><label>Service</label><select id="in-service" onchange="updateForm()"><option value="local">BaltimoreLink</option><option value="commuter">Commuter Bus</option><option value="marc">Marc Train</option></select></div>
         <div id="od-group" style="display:none">
-            <div class="input-group"><label>Origin Station</label>
-                <select id="in-origin">
-                    <option value="BAL">Baltimore Penn</option>
-                    <option value="WAS">Washington Union</option>
-                    <option value="BWI">BWI Airport</option>
-                    <option value="ODN">Odenton</option>
-                    <option value="WAS">Washington</option>
-                    <option value="FRE">Frederick</option>
-                </select>
-            </div>
-            <div class="input-group"><label>Destination Station</label>
-                <select id="in-dest">
-                    <option value="WAS">Washington Union</option>
-                    <option value="BAL">Baltimore Penn</option>
-                    <option value="BWI">BWI Airport</option>
-                    <option value="ODN">Odenton</option>
-                </select>
-            </div>
+            <div class="input-group"><label>Origin</label><select id="in-origin"></select></div>
+            <div class="input-group"><label>Destination</label><select id="in-dest"></select></div>
         </div>
-        <div class="input-group"><label>Giant Letter (Day Code)</label><input type="text" id="in-letter" value="F" maxlength="1"></div>
-        <div class="input-group"><label>Red Box Code</label><input type="text" id="in-code" value="G7" maxlength="3"></div>
-        <div class="input-group"><label>Product Name</label><input type="text" id="in-product" value="BaltimoreLink"></div>
-        <div class="input-group"><label>Ticket Count</label><input type="number" id="in-count" value="1"></div>
-        <div class="input-group"><label>Exp (Mins)</label><input type="number" id="in-minutes" value="90"></div>
+        <div class="input-group"><label>Letter</label><input type="text" id="in-letter" value="F" maxlength="1"></div>
+        <div class="input-group"><label>Code</label><input type="text" id="in-code" value="G7" maxlength="2"></div>
+        <div class="input-group"><label>QR Data</label><input type="text" id="in-qr" value="CharmPass_Replica"></div>
+        <div class="input-group" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="in-edit-mode" style="width:auto;">
+            <label for="in-edit-mode" style="text-transform:none;font-size:14px;color:#333;">Enable Customization Mode</label>
+        </div>
         <button id="launch-btn">ACTIVATE TICKET</button>
     </div>
 
+    <div id="edit-panel">
+        <div id="ep-header">
+            <strong id="edit-element-name">Editing: (None)</strong>
+            <div style="display:flex;gap:6px;">
+                <button onclick="unlockAllRefs()" style="background:#444;color:white;border-color:#444;">UNLOCK REFS</button>
+                <button onclick="toggleGrid()">GRID</button>
+                <button onclick="undoEdit()">UNDO</button>
+                <button onclick="resetAllStyles()" style="background:#888;color:white;border-color:#888;">RESET</button>
+                <button onclick="finalizeEdits()">FINALIZE</button>
+            </div>
+        </div>
+        <div id="controls"></div>
+    </div>
+
     <div id="app-screen">
-        <video id="bg-video" autoplay loop muted playsinline><source src="scrolling_background.mp4" type="video/mp4"></video>
+        <video id="bg-video" autoplay loop muted playsinline><source src="background.mp4" type="video/mp4"></video>
         <div class="overlay"></div>
         <div id="ticket-viewport"></div>
     </div>
 
+    <div id="qr-overlay" onclick="document.getElementById('qr-overlay').style.display='none'">
+        <div id="qr-full"></div>
+    </div>
+
     <script>
-        function updateForm() {
-            const isMarc = document.getElementById('in-service').value === 'marc';
-            document.getElementById('od-group').style.display = isMarc ? 'block' : 'none';
-            if(isMarc) document.getElementById('in-product').value = "MARC Train";
-            else document.getElementById('in-product').value = "BaltimoreLink";
+    // ── Station data & setup form ──────────────────────────────────────────────
+    const stationZones = {
+        'PVL':6,'ABE':5,'EDG':5,'MTA':4,'BAL':4,'WBA':4,'HAL':3,'BWI':3,'ODE':2,'BOW':2,'SEA':2,'NCR':1,'WAS':1,
+        'CAM':4,'SDN':4,'ELK':3,'DOR':3,'SVG':3,'JSP':3,'LAP':2,'LAU':2,'MUI':2,'GRB':1,'CLP':1,'RDP':1,
+        'MRT':6,'DUF':6,'HFY':6,'BRU':5,'POR':4,'DKN':4,'BRV':4,'BOY':4,'GER':3,'MET':3,'GAI':3,'WAG':3,
+        'RKV':2,'GPK':2,'KEN':2,'SSP':1,'FRE':4,'MON':4
+    };
+    const stationOpts = Object.keys(stationZones).map(k => `<option value="${k}">${k}</option>`).join('');
+    document.getElementById('in-origin').innerHTML = stationOpts;
+    document.getElementById('in-dest').innerHTML   = stationOpts;
+
+    function updateForm() {
+        document.getElementById('od-group').style.display =
+            document.getElementById('in-service').value === 'marc' ? 'block' : 'none';
+    }
+
+    document.getElementById('launch-btn').onclick = () => {
+        const service = document.getElementById('in-service').value;
+        const letter  = document.getElementById('in-letter').value.toUpperCase();
+        const code    = document.getElementById('in-code').value.toUpperCase();
+        const qrData  = document.getElementById('in-qr').value;
+        const now = new Date();
+
+        // Switch to this service's context
+        currentService = service;
+        for (const k in savedStyles) delete savedStyles[k];
+        undoStack.length = 0;
+        const stored = JSON.parse(localStorage.getItem('ticket_styles_' + service) || '{}');
+        Object.assign(savedStyles, stored);
+        const exp = new Date(now.getTime() + (service === 'commuter' ? 10 : 90) * 60000);
+        const fmtT = d => `${d.getHours()%12||12}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')} ${d.getHours()>=12?'PM':'AM'}`;
+        const fmtD = d => `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear().toString().slice(-2)}`;
+
+        let marcHtml = '';
+        if (service === 'marc') {
+            const origin = document.getElementById('in-origin').value;
+            const dest   = document.getElementById('in-dest').value;
+            const z1 = stationZones[origin], z2 = stationZones[dest];
+            const zones  = ["Zero Zone","One Zone","Two Zone","Three Zone","Four Zone","Five Zone"][Math.abs(z1-z2)+1] || "Four Zone";
+            marcHtml = `
+                <div class="route-origin editable">${origin}</div>
+                <div class="route-arrow editable">→</div>
+                <div class="route-dest editable">${dest}</div>
+                <div class="zones-text editable">${zones}</div>`;
         }
 
-        document.getElementById('launch-btn').onclick = () => {
-            const count = parseInt(document.getElementById('in-count').value) || 1;
-            const minutes = parseInt(document.getElementById('in-minutes').value) || 90;
-            const service = document.getElementById('in-service').value;
-            const origin = document.getElementById('in-origin').value;
-            const dest = document.getElementById('in-dest').value;
-            const letter = document.getElementById('in-letter').value.toUpperCase();
-            const code = document.getElementById('in-code').value.toUpperCase();
-            const product = document.getElementById('in-product').value;
+        document.getElementById('ticket-viewport').innerHTML = `
+            <div class="ticket editable">
+                <div class="expire-time editable">${fmtT(exp)}</div>
+                <div class="expire-date editable">${fmtD(exp)}</div>
+                <div class="notches-unit editable"><div class="divider"></div></div>
+                <div class="product-name editable">${service==='marc'?'MARC Train':(service==='commuter'?'Commuter Bus':'BaltimoreLink')}</div>
+                <div class="giant-letter editable">${letter}</div>
+                ${marcHtml}
+                <div class="red-box editable"></div>
+                <div class="box-code editable">${code}</div>
+                <div class="qr-container editable" id="qr-main"></div>
+            </div>`;
 
-            const exp = new Date(Date.now() + minutes * 60000);
-            const timeStr = exp.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', second:'2-digit', hour12: true});
-            const dateStr = exp.toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'2-digit'});
+        new QRCode(document.getElementById('qr-main'), { text: qrData, width: 90, height: 90 });
 
-            const viewport = document.getElementById('ticket-viewport');
-            viewport.innerHTML = '';
-
-            for(let i=1; i<=count; i++) {
-                const wrap = document.createElement('div');
-                wrap.className = 'ticket-wrapper';
-                
-                let midContent = `<div class="giant-letter">${letter}</div>`;
-                if(service === 'marc') {
-                    midContent = `
-                        <div class="giant-letter">${letter}</div>
-                        <div class="marc-info">
-                            <div class="route-row">
-                                <span>${origin}</span>
-                                <span class="arrow-glyph">➔</span>
-                                <span>${dest}</span>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                wrap.innerHTML = `
-                    <div class="ticket">
-                        <div class="ticket-header">
-                            <div class="exp-time">${timeStr}</div>
-                            <div class="exp-date">${dateStr}</div>
-                        </div>
-                        <div class="divider"></div>
-                        <div class="ticket-body">
-                            <div class="left-section">
-                                <img src="ticket_icon.png" class="agency-logo">
-                                ${midContent}
-                                <div class="product-name">${product}</div>
-                            </div>
-                            <div class="right-section">
-                                <div class="red-box">${code}</div>
-                                <div class="qr-code"></div>
-                            </div>
-                        </div>
-                    </div>
-                    ${count > 1 ? `<div class="indicator">Ticket ${i} of ${count}</div>` : ''}
-                `;
-                viewport.appendChild(wrap);
-            }
-
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'block';
-            document.getElementById('bg-video').play();
+        // QR tap-to-enlarge logic
+        document.getElementById('qr-main').onclick = (e) => {
+            if (document.getElementById('in-edit-mode').checked) return;
+            showQr(qrData);
         };
+
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display   = 'block';
+
+        // Always apply baked defaults for this service — affects the real ticket, not just customization mode
+        applyStyleMap(BAKED_DEFAULTS[service] || {});
+
+        if (document.getElementById('in-edit-mode').checked) initCustomization();
+    };
+
+    function showQr(data) {
+        const full = document.getElementById('qr-full');
+        full.innerHTML = '';
+        new QRCode(full, { text: data, width: 350, height: 350 });
+        document.getElementById('qr-overlay').style.display = 'flex';
+    }
+
+    // ── Customization Mode ─────────────────────────────────────────────────────
+
+    let selectedEl  = null;
+    let dragging    = false;
+    let resizing    = false;
+    let ptrMoved    = false;
+    let activeHandle = null;
+    let ptrStartX, ptrStartY;
+    let elStartLeft, elStartTop, elStartW, elStartH, resizeRatio;
+    let controlInputs = {};
+
+    let currentService = 'local';
+    let savedStyles    = {};
+    const undoStack    = [];
+
+    // ==BAKED_DEFAULTS_START==
+    const BAKED_DEFAULTS = {
+      "local": {
+        "#ref-1775233963199": {
+          "left": "387.85711669921875px",
+          "top": "81px",
+          "width": "688px",
+          "height": "463px"
+        },
+        ".ticket": {
+          "width": "424px",
+          "height": "371px",
+          "top": "-67.42865278320312px"
+        },
+        ".product-name": {
+          "left": "23px",
+          "top": "263px",
+          "letter-spacing": "0px"
+        },
+        ".expire-time": {
+          "left": "26px",
+          "top": "30px"
+        },
+        ".expire-date": {
+          "top": "31px"
+        },
+        ".giant-letter": {
+          "top": "142px",
+          "left": "22px"
+        },
+        ".box-code": {
+          "left": "327px",
+          "top": "118px"
+        }
+      },
+      "commuter": {},
+      "marc": {}
+    };
+    // ==BAKED_DEFAULTS_END==
+
+    function snapshotForUndo() {
+        undoStack.push(JSON.stringify(savedStyles));
+        if (undoStack.length > 50) undoStack.shift();
+    }
+
+    function applyStyleMap(map) {
+        Object.keys(map).forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+                Object.assign(el.style, map[sel]);
+                if (sel === '.notches-unit') updateTicketMask(el);
+            });
+        });
+    }
+
+    function undoEdit() {
+        if (!undoStack.length) return;
+        const prev = JSON.parse(undoStack.pop());
+        Object.keys(savedStyles).forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+                Object.keys(savedStyles[sel]).forEach(p => { el.style[p] = ''; });
+            });
+        });
+        for (const k in savedStyles) delete savedStyles[k];
+        Object.assign(savedStyles, prev);
+        applyStyleMap(savedStyles);
+        localStorage.setItem('ticket_styles_' + currentService, JSON.stringify(savedStyles));
+        if (selectedEl) updateControls(selectedEl);
+    }
+
+    function resetAllStyles() {
+        if (!confirm('Clear ALL customizations and restore defaults?')) return;
+        snapshotForUndo();
+        Object.keys(savedStyles).forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+                Object.keys(savedStyles[sel]).forEach(p => { el.style[p] = ''; });
+            });
+        });
+        for (const k in savedStyles) delete savedStyles[k];
+        localStorage.removeItem('ticket_styles_' + currentService);
+        // Re-apply baked defaults so the ticket returns to its baked baseline
+        applyStyleMap(BAKED_DEFAULTS[currentService] || {});
+        if (selectedEl) updateControls(selectedEl);
+    }
+
+    window.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undoEdit(); }
+    });
+
+    function getElSel(el) {
+        if (el.id) return '#' + el.id;
+        const cls = Array.from(el.classList).find(c => !['editable','selected','locked','ref-container'].includes(c));
+        return cls ? '.' + cls : null;
+    }
+
+    function saveElStyle(el, prop, val) {
+        const sel = getElSel(el);
+        if (!sel) return;
+        if (!savedStyles[sel]) savedStyles[sel] = {};
+        savedStyles[sel][prop] = val;
+        localStorage.setItem('ticket_styles_' + currentService, JSON.stringify(savedStyles));
+    }
+
+    function initCustomization() {
+        document.getElementById('edit-panel').style.display = 'block';
+        // Baked defaults already applied on launch — only re-apply in-progress edits on top
+        applyStyleMap(savedStyles);
+        document.querySelectorAll('.notches-unit').forEach(updateTicketMask);
+
+        window.addEventListener('pointerdown', onPtrDown, true);
+        window.addEventListener('pointermove', onPtrMove, true);
+        window.addEventListener('pointerup',   onPtrUp,   true);
+
+        const appScreen = document.getElementById('app-screen');
+        appScreen.addEventListener('dragover', e => e.preventDefault());
+        appScreen.addEventListener('drop', onImageDrop);
+    }
+
+    function onPtrDown(e) {
+        if (e.target.closest('#edit-panel')) return;
+
+        if (e.target.classList.contains('resize-handle')) {
+            e.preventDefault(); e.stopPropagation();
+            startResize(e); return;
+        }
+
+        const target = e.target.closest('.editable, .ref-container');
+        if (!target) { deselectAll(); return; }
+        if (target.classList.contains('locked')) return;
+
+        e.preventDefault(); e.stopPropagation();
+        selectElement(target);
+
+        ptrStartX   = e.clientX;
+        ptrStartY   = e.clientY;
+        elStartLeft = target.classList.contains('ticket') ? 0 : target.offsetLeft;
+        elStartTop  = target.classList.contains('ticket') ? (parseFloat(target.style.top) || 0) : target.offsetTop;
+        ptrMoved    = false;
+        dragging    = true;
+    }
+
+    function onPtrMove(e) {
+        if (!dragging && !resizing) return;
+        e.preventDefault();
+        const dx = e.clientX - ptrStartX;
+        const dy = e.clientY - ptrStartY;
+
+        if (!ptrMoved) {
+            if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+            snapshotForUndo();
+            ptrMoved = true;
+        }
+
+        if (dragging && selectedEl) {
+            const isTicket = selectedEl.classList.contains('ticket');
+            const nt = elStartTop + dy;
+            if (isTicket) {
+                selectedEl.style.top = nt + 'px';
+                saveElStyle(selectedEl, 'top', nt + 'px');
+            } else {
+                let nl = elStartLeft + dx;
+                if (selectedEl.classList.contains('notches-unit')) nl = 0;
+                selectedEl.style.left = nl + 'px';
+                selectedEl.style.top  = nt + 'px';
+                saveElStyle(selectedEl, 'left', nl + 'px');
+                saveElStyle(selectedEl, 'top',  nt + 'px');
+                if (selectedEl.classList.contains('notches-unit')) updateTicketMask(selectedEl);
+                if (controlInputs['left']) controlInputs['left'].value = Math.round(nl);
+            }
+            if (controlInputs['top']) controlInputs['top'].value = Math.round(nt);
+        }
+
+        if (resizing && selectedEl) doResize(dx, dy);
+    }
+
+    function onPtrUp() { dragging = resizing = false; activeHandle = null; ptrMoved = false; }
+
+    function deselectAll() {
+        if (!selectedEl) return;
+        selectedEl.classList.remove('selected');
+        selectedEl.querySelectorAll('.resize-handle').forEach(h => h.remove());
+        selectedEl  = null;
+        controlInputs = {};
+        document.getElementById('edit-element-name').textContent = 'Editing: (None)';
+        document.getElementById('controls').innerHTML = '';
+    }
+
+    function selectElement(el) {
+        if (selectedEl === el) return;
+        deselectAll();
+        selectedEl = el;
+        el.classList.add('selected');
+        ['nw','ne','sw','se','n','s','e','w'].forEach(dir => {
+            const h = document.createElement('div');
+            h.className = 'resize-handle h-' + dir;
+            el.appendChild(h);
+        });
+        document.getElementById('edit-element-name').textContent = 'Editing: ' + (getElSel(el) || 'element');
+        updateControls(el);
+    }
+
+    function startResize(e) {
+        resizing     = true;
+        activeHandle = e.target;
+        ptrStartX    = e.clientX;
+        ptrStartY    = e.clientY;
+        elStartW     = selectedEl.offsetWidth;
+        elStartH     = selectedEl.offsetHeight;
+        resizeRatio  = elStartW / (elStartH || 1);
+        ptrMoved     = false;
+        const isTicket = selectedEl.classList.contains('ticket');
+        elStartLeft  = isTicket ? 0 : selectedEl.offsetLeft;
+        elStartTop   = isTicket ? (parseFloat(selectedEl.style.top) || 0) : selectedEl.offsetTop;
+    }
+
+    function doResize(dx, dy) {
+        const MIN      = 10;
+        const isTicket = selectedEl.classList.contains('ticket');
+        let nw = elStartW, nh = elStartH, nl = elStartLeft, nt = elStartTop;
+        const hc = activeHandle.classList;
+
+        if      (hc.contains('h-e'))  { nw = Math.max(MIN, elStartW + dx); }
+        else if (hc.contains('h-w'))  { nw = Math.max(MIN, elStartW - dx); nl = elStartLeft + (elStartW - nw); }
+        else if (hc.contains('h-s'))  { nh = Math.max(MIN, elStartH + dy); }
+        else if (hc.contains('h-n'))  { nh = Math.max(MIN, elStartH - dy); nt = elStartTop  + (elStartH - nh); }
+        else if (hc.contains('h-se')) { nw = Math.max(MIN, elStartW + dx); nh = nw / resizeRatio; }
+        else if (hc.contains('h-sw')) { nw = Math.max(MIN, elStartW - dx); nh = nw / resizeRatio; nl = elStartLeft + (elStartW - nw); nt = elStartTop + (elStartH - nh); }
+        else if (hc.contains('h-ne')) { nw = Math.max(MIN, elStartW + dx); nh = nw / resizeRatio; nt = elStartTop + (elStartH - nh); }
+        else if (hc.contains('h-nw')) { nw = Math.max(MIN, elStartW - dx); nh = nw / resizeRatio; nl = elStartLeft + (elStartW - nw); nt = elStartTop + (elStartH - nh); }
+
+        selectedEl.style.width  = nw + 'px';
+        selectedEl.style.height = nh + 'px';
+        saveElStyle(selectedEl, 'width',  nw + 'px');
+        saveElStyle(selectedEl, 'height', nh + 'px');
+
+        if (isTicket) {
+            selectedEl.style.top = nt + 'px';
+            saveElStyle(selectedEl, 'top', nt + 'px');
+        } else {
+            selectedEl.style.left = nl + 'px';
+            selectedEl.style.top  = nt + 'px';
+            saveElStyle(selectedEl, 'left', nl + 'px');
+            saveElStyle(selectedEl, 'top',  nt + 'px');
+            if (controlInputs['left']) controlInputs['left'].value = Math.round(nl);
+        }
+        if (controlInputs['width'])  controlInputs['width'].value  = Math.round(nw);
+        if (controlInputs['height']) controlInputs['height'].value = Math.round(nh);
+        if (controlInputs['top'])    controlInputs['top'].value    = Math.round(nt);
+    }
+
+    function updateTicketMask(unit) {
+        const y    = unit.offsetTop + unit.offsetHeight / 2;
+        const t    = document.querySelector('.ticket');
+        const mask = `radial-gradient(circle 12px at 0px ${y}px, transparent 12px, #000 13px), radial-gradient(circle 12px at 100% ${y}px, transparent 12px, #000 13px)`;
+        t.style.webkitMaskImage = mask;
+        t.style.maskImage       = mask;
+        t.style.webkitMaskComposite = 'source-in';
+        t.style.maskComposite = 'intersect';
+    }
+
+    function updateControls(el) {
+        controlInputs = {};
+        const panel = document.getElementById('controls');
+        panel.innerHTML = '';
+        const cs = window.getComputedStyle(el);
+
+        const lockRow = makeRow();
+        const lockBtn = document.createElement('button');
+        lockBtn.textContent = el.classList.contains('locked') ? 'UNLOCK' : 'LOCK';
+        lockBtn.onclick = () => {
+            el.classList.toggle('locked');
+            lockBtn.textContent = el.classList.contains('locked') ? 'UNLOCK' : 'LOCK';
+            if (el.classList.contains('locked')) el.classList.remove('selected');
+        };
+        lockRow.appendChild(lockBtn);
+        panel.appendChild(lockRow);
+
+        const opRow = makeRow('Opacity');
+        const opSlider = document.createElement('input');
+        opSlider.type = 'range'; opSlider.min = '0'; opSlider.max = '1'; opSlider.step = '0.05';
+        opSlider.value = parseFloat(cs.opacity) || 1;
+        opSlider.oninput = () => { el.style.opacity = opSlider.value; saveElStyle(el, 'opacity', opSlider.value); };
+        opRow.appendChild(opSlider);
+        panel.appendChild(opRow);
+
+        [['width','W (px)'],['height','H (px)'],['left','X (px)'],['top','Y (px)'],['font-size','Font sz'],['letter-spacing','Tracking'],['border-top-left-radius','R-TL'],['border-top-right-radius','R-TR'],['border-bottom-left-radius','R-BL'],['border-bottom-right-radius','R-BR']].forEach(([prop, lbl]) => {
+            const row = makeRow(lbl);
+            const inp = document.createElement('input');
+            inp.type  = 'number';
+            inp.value = Math.round(parseFloat(cs[prop]) || 0);
+            inp.oninput = () => {
+                el.style[prop] = inp.value + 'px';
+                saveElStyle(el, prop, inp.value + 'px');
+                if (el.classList.contains('notches-unit')) updateTicketMask(el);
+            };
+            controlInputs[prop] = inp;
+            row.appendChild(inp); panel.appendChild(row);
+        });
+
+        const firstChild = el.childNodes[0];
+        if (firstChild && firstChild.nodeType === Node.TEXT_NODE && firstChild.textContent.trim()) {
+            const row = makeRow('Text');
+            const inp = document.createElement('input');
+            inp.type  = 'text';
+            inp.value = firstChild.textContent.trim();
+            inp.oninput = () => { firstChild.textContent = inp.value; };
+            row.appendChild(inp); panel.appendChild(row);
+        }
+
+        [['color','Text color'], ['background-color','BG color']].forEach(([prop, lbl]) => {
+            const hex = rgbToHex(cs[prop]);
+            if (!hex) return;
+            const row = makeRow(lbl);
+            const inp = document.createElement('input');
+            inp.type  = 'color';
+            inp.value = hex;
+            inp.oninput = () => { el.style[prop] = inp.value; saveElStyle(el, prop, inp.value); };
+            row.appendChild(inp); panel.appendChild(row);
+        });
+    }
+
+    function makeRow(label) {
+        const row = document.createElement('div'); row.className = 'ctrl-row';
+        if (label) { const lbl = document.createElement('label'); lbl.textContent = label; row.appendChild(lbl); }
+        return row;
+    }
+
+    function rgbToHex(rgb) {
+        const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!m) return null;
+        return '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
+    }
+
+    function onImageDrop(e) {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const div = document.createElement('div');
+            div.className = 'ref-container';
+            div.id = 'ref-' + Date.now();
+            div.style.cssText = 'position:absolute; z-index:100; top:50px; left:50px; width:200px; height:auto;';
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            img.style.cssText = 'width:100%; display:block; opacity:0.5; pointer-events:none;';
+            div.appendChild(img);
+            document.getElementById('app-screen').appendChild(div);
+            selectElement(div);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function toggleGrid() {
+        const g = document.getElementById('grid-overlay');
+        g.style.display = g.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function unlockAllRefs() {
+        document.querySelectorAll('.ref-container.locked').forEach(el => {
+            el.classList.remove('locked');
+        });
+        alert("All reference images are now interactable again.");
+    }
+
+    async function finalizeEdits() {
+        const svc = currentService;
+
+        // 1. Merge in-progress edits into BAKED_DEFAULTS for this service
+        if (!BAKED_DEFAULTS[svc]) BAKED_DEFAULTS[svc] = {};
+        for (const sel in savedStyles) {
+            if (!BAKED_DEFAULTS[svc][sel]) BAKED_DEFAULTS[svc][sel] = {};
+            Object.assign(BAKED_DEFAULTS[svc][sel], savedStyles[sel]);
+        }
+
+        // 2. Clear in-progress localStorage — it's now baked
+        localStorage.removeItem('ticket_styles_' + svc);
+        for (const k in savedStyles) delete savedStyles[k];
+        undoStack.length = 0;
+
+        // 3. Build replacement text for the BAKED_DEFAULTS block
+        const newBlock =
+            '    // ==BAKED_DEFAULTS_START==\n' +
+            '    const BAKED_DEFAULTS = ' + JSON.stringify(BAKED_DEFAULTS, null, 2).replace(/\n/g, '\n    ') + ';\n' +
+            '    // ==BAKED_DEFAULTS_END==';
+
+        // 4. Get the HTML source — try fetch first (works when served via HTTP/localhost)
+        let html = null;
+        try {
+            const r = await fetch(location.href);
+            if (r.ok) html = await r.text();
+        } catch (_) {}
+
+        // 5. If fetch blocked (file:// protocol), ask user to open the file
+        if (!html && window.showOpenFilePicker) {
+            try {
+                const [fh] = await window.showOpenFilePicker({
+                    types: [{ description: 'index.html', accept: { 'text/html': ['.html'] } }],
+                    multiple: false
+                });
+                html = await (await fh.getFile()).text();
+            } catch (_) {}
+        }
+
+        if (html) {
+            // 6. Patch the BAKED_DEFAULTS block in the source
+            const patched = html.replace(
+                /[ \t]*\/\/ ==BAKED_DEFAULTS_START==[\s\S]*?\/\/ ==BAKED_DEFAULTS_END==/,
+                newBlock
+            );
+
+            // 7. Save — try File System Access "Save As" first, then fall back to download
+            let saved = false;
+            if (window.showSaveFilePicker) {
+                try {
+                    const fh = await window.showSaveFilePicker({
+                        suggestedName: 'index.html',
+                        types: [{ description: 'HTML file', accept: { 'text/html': ['.html'] } }]
+                    });
+                    const w = await fh.createWritable();
+                    await w.write(patched);
+                    await w.close();
+                    saved = true;
+                    alert('✅ ' + svc.toUpperCase() + ' layout finalized and saved directly to your file!');
+                } catch (_) {}
+            }
+            if (!saved) {
+                // Fallback: trigger browser download
+                const blob = new Blob([patched], { type: 'text/html' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'index.html';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                alert('✅ ' + svc.toUpperCase() + ' layout finalized! Replace your index.html with the downloaded file.');
+            }
+        } else {
+            // Ultimate fallback: show the block to copy manually
+            const ta = document.createElement('textarea');
+            ta.value = newBlock;
+            ta.style.cssText = 'position:fixed;top:10%;left:5%;width:90%;height:70%;z-index:99999;font-size:11px;font-family:monospace;padding:10px;';
+            const close = document.createElement('button');
+            close.textContent = '✕ Close';
+            close.style.cssText = 'position:fixed;top:10%;right:5%;z-index:99999;padding:6px 12px;background:#C8122C;color:#fff;border:none;cursor:pointer;font-size:14px;border-radius:4px;';
+            close.onclick = () => { ta.remove(); close.remove(); msg.remove(); };
+            const msg = document.createElement('div');
+            msg.style.cssText = 'position:fixed;top:calc(10% - 28px);left:5%;z-index:99999;color:#fff;font-weight:bold;font-size:13px;';
+            msg.textContent = 'Copy all ↓ and replace the ==BAKED_DEFAULTS_START== block in your index.html:';
+            document.body.append(ta, close, msg);
+            ta.select();
+        }
+    }
+
     </script>
 </body>
 </html>
