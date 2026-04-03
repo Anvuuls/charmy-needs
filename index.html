@@ -24,8 +24,31 @@
         #bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
         .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.02); z-index: 2; pointer-events: none; }
 
-        #ticket-viewport { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none; padding: 20px; }
+        #ticket-viewport { 
+            position: absolute; inset: 0; 
+            display: flex; 
+            align-items: flex-start; 
+            justify-content: flex-start; 
+            z-index: 10; 
+            pointer-events: none; 
+            padding-top: 8vh;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #ticket-viewport::-webkit-scrollbar { display: none; }
         #ticket-viewport > * { pointer-events: auto; }
+
+        .ticket-wrapper {
+            width: 100vw;
+            min-width: 100vw;
+            display: flex;
+            justify-content: center;
+            scroll-snap-align: start;
+            flex-shrink: 0;
+            padding: 0 8.5vw;
+        }
 
         .ticket { 
             --base-width: 424;
@@ -39,7 +62,7 @@
             position: relative; 
             overflow: visible;
             transform: scale(var(--scale));
-            transform-origin: center center;
+            transform-origin: top center;
             flex-shrink: 0;
         }
 
@@ -128,6 +151,7 @@
         </div>
         <div class="input-group"><label>Letter</label><input type="text" id="in-letter" value="F" maxlength="1"></div>
         <div class="input-group"><label>Code</label><input type="text" id="in-code" value="G7" maxlength="2"></div>
+        <div class="input-group"><label>Ticket Count</label><input type="number" id="in-count" value="1" min="1"></div>
         <div class="input-group"><label>QR Data</label><input type="text" id="in-qr" value="CharmPass_Replica"></div>
         <div class="input-group" style="display:flex;align-items:center;gap:8px;">
             <input type="checkbox" id="in-edit-mode" style="width:auto;">
@@ -182,6 +206,7 @@
         const letter  = document.getElementById('in-letter').value.toUpperCase();
         const code    = document.getElementById('in-code').value.toUpperCase();
         const qrData  = document.getElementById('in-qr').value;
+        const count   = parseInt(document.getElementById('in-count').value) || 1;
         const now = new Date();
 
         // Switch to this service's context
@@ -207,26 +232,33 @@
                 <div class="zones-text editable">${zones}</div>`;
         }
 
-        document.getElementById('ticket-viewport').innerHTML = `
-            <div class="ticket editable">
-                <div class="expire-time editable">${fmtT(exp)}</div>
-                <div class="expire-date editable">${fmtD(exp)}</div>
-                <div class="notches-unit editable"><div class="divider"></div></div>
-                <div class="product-name editable">${service==='marc'?'MARC Train':(service==='commuter'?'Commuter Bus':'BaltimoreLink')}</div>
-                <div class="giant-letter editable">${letter}</div>
-                ${marcHtml}
-                <div class="red-box editable"></div>
-                <div class="box-code editable">${code}</div>
-                <div class="qr-container editable" id="qr-main"></div>
-            </div>`;
+        const viewport = document.getElementById('ticket-viewport');
+        viewport.innerHTML = '';
 
-        new QRCode(document.getElementById('qr-main'), { text: qrData, width: 90, height: 90 });
-
-        // QR tap-to-enlarge logic
-        document.getElementById('qr-main').onclick = (e) => {
-            if (document.getElementById('in-edit-mode').checked) return;
-            showQr(qrData);
-        };
+        for (let i = 0; i < count; i++) {
+            const wrap = document.createElement('div');
+            wrap.className = 'ticket-wrapper';
+            wrap.innerHTML = `
+                <div class="ticket editable">
+                    <div class="expire-time editable">${fmtT(exp)}</div>
+                    <div class="expire-date editable">${fmtD(exp)}</div>
+                    <div class="notches-unit editable"><div class="divider"></div></div>
+                    <div class="product-name editable">${service==='marc'?'MARC Train':(service==='commuter'?'Commuter Bus':'BaltimoreLink')}</div>
+                    <div class="giant-letter editable">${letter}</div>
+                    ${marcHtml}
+                    <div class="red-box editable"></div>
+                    <div class="box-code editable">${code}</div>
+                    <div class="qr-container editable" id="qr-main-${i}"></div>
+                </div>`;
+            viewport.appendChild(wrap);
+            new QRCode(document.getElementById(`qr-main-${i}`), { text: qrData, width: 90, height: 90 });
+            
+            // QR tap-to-enlarge logic
+            document.getElementById(`qr-main-${i}`).onclick = (e) => {
+                if (document.getElementById('in-edit-mode').checked) return;
+                showQr(qrData);
+            };
+        }
 
         document.getElementById('setup-screen').style.display = 'none';
         document.getElementById('app-screen').style.display   = 'block';
@@ -236,23 +268,32 @@
 
         if (document.getElementById('in-edit-mode').checked) initCustomization();
         
-        resizeTicket();
+        resizeTickets();
     };
 
-    function resizeTicket() {
-        const ticket = document.querySelector('.ticket');
-        if (!ticket) return;
-        const viewport = document.getElementById('ticket-viewport');
-        const vw = viewport.clientWidth - 40;
-        const vh = viewport.clientHeight - 40;
+    function resizeTickets() {
+        const tickets = document.querySelectorAll('.ticket');
+        if (!tickets.length) return;
+        
+        const targetWidth = window.innerWidth * 0.83; // 83vw from reference
         const baseW = 424;
         const baseH = 480;
         
-        let scale = Math.min(vw / baseW, vh / baseH, 1);
-        ticket.style.setProperty('--scale', scale);
+        let scale = targetWidth / baseW;
+        
+        // Ensure it doesn't overflow height (8vh top padding)
+        const vh = window.innerHeight;
+        const maxH = vh * 0.85; // Leave some room at bottom
+        if (baseH * scale > maxH) {
+            scale = maxH / baseH;
+        }
+
+        tickets.forEach(ticket => {
+            ticket.style.setProperty('--scale', scale);
+        });
     }
 
-    window.addEventListener('resize', resizeTicket);
+    window.addEventListener('resize', resizeTickets);
 
     function showQr(data) {
         const full = document.getElementById('qr-full');
@@ -441,10 +482,13 @@
             ptrMoved = true;
         }
 
+        const ticket = selectedEl.closest('.ticket');
+        const scale  = ticket ? parseFloat(getComputedStyle(ticket).getPropertyValue('--scale')) || 1 : 1;
+
         if (dragging && selectedEl) {
             if (selectedEl.classList.contains('ticket')) return; // Ticket position is fixed/responsive
-            const nt = elStartTop + dy;
-            let nl = elStartLeft + dx;
+            const nt = elStartTop + (dy / scale);
+            let nl = elStartLeft + (dx / scale);
             if (selectedEl.classList.contains('notches-unit')) nl = 0;
             selectedEl.style.left = nl + 'px';
             selectedEl.style.top  = nt + 'px';
@@ -457,7 +501,7 @@
 
         if (resizing && selectedEl) {
             if (selectedEl.classList.contains('ticket')) return; // Ticket size is responsive
-            doResize(dx, dy);
+            doResize(dx / scale, dy / scale);
         }
     }
 
@@ -538,7 +582,8 @@
 
     function updateTicketMask(unit) {
         const y    = unit.offsetTop + unit.offsetHeight / 2;
-        const t    = document.querySelector('.ticket');
+        const t    = unit.closest('.ticket');
+        if (!t) return;
         const mask = `radial-gradient(circle 12px at 0px ${y}px, transparent 12px, #000 13px), radial-gradient(circle 12px at 100% ${y}px, transparent 12px, #000 13px)`;
         t.style.webkitMaskImage = mask;
         t.style.maskImage       = mask;
