@@ -71,7 +71,8 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.7);
             position: relative;
             overflow: visible;
-            zoom: var(--scale);
+            transform: scale(var(--scale));
+            transform-origin: top left;
             flex-shrink: 0;
             pointer-events: auto;
         }
@@ -287,6 +288,10 @@
 
         tickets.forEach(ticket => {
             ticket.style.setProperty('--scale', scale);
+            // Compensate the layout box so flex centering uses the visual (scaled) width,
+            // not the raw 424px base width. margin-right = (scale - 1) * baseW gives a
+            // negative margin when scale < 1 (mobile) and positive when scale > 1 (desktop).
+            ticket.style.marginRight = `${(scale - 1) * baseW}px`;
         });
     }
 
